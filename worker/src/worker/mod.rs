@@ -3,6 +3,7 @@ use common::types::{
     kv::{Key, KeyValue, Value},
 };
 
+pub mod daemon;
 pub mod uni_worker;
 
 enum WorkerState {

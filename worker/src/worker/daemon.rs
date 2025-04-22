@@ -1,5 +1,6 @@
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
+// Daemon workers that runs on machine and executes code from master node
 use common::types::{
     job::Job,
     kv::{Key, KeyValue, Value},
@@ -11,18 +12,17 @@ enum WorkerState {
     COMPLETED,
 }
 
-pub struct UniWorker<J: Job> {
+pub struct DaemonWorker {
     state: WorkerState,
     curr_threads: usize,
-    job: J,
     config: WorkerConfiguration,
 }
 
 pub struct WorkerConfiguration {
+    // RPC Connection info
     id: usize,
     max_threads: usize,
     server: SocketAddr,
-    job_type: String,
 }
 
 impl Default for WorkerConfiguration {
@@ -31,18 +31,16 @@ impl Default for WorkerConfiguration {
             max_threads: 1,
             id: 1,
             server: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 50420)),
-            job_type: "Default".to_string(),
         }
     }
 }
 
-impl<J: Job> UniWorker<J> {
-    pub fn new(config: WorkerConfiguration, job: J) -> UniWorker<J> {
+impl DaemonWorker {
+    pub fn new(config: WorkerConfiguration) -> DaemonWorker {
         Self {
             curr_threads: 0,
             state: WorkerState::IDLE,
             config,
-            job,
         }
     }
 
