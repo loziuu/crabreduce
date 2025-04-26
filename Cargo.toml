@@ -1,2 +1,5 @@
 [workspace]
-members = ["client", "worker", "coordinator", "common"]
+members = ["client", "worker", "crab_master", "common"]
+
+[workspace.dependencies]
+anyhow = "1.0.98"

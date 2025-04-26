@@ -150,11 +150,15 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+]
 
 [[package]]
-name = "coordinator"
+name = "crab_master"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "common",
  "prost",
  "tokio",

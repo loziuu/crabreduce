@@ -1,5 +1,5 @@
 [package]
-name = "coordinator"
+name = "crab_master"
 version = "0.1.0"
 edition = "2024"
 
@@ -8,6 +8,7 @@ tonic = "*"
 prost = "0.13"
 tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
 common = { path = "../common" }
+anyhow = "1.0.98"
 
 [build-dependencies]
 tonic-build = "*"
