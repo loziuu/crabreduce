@@ -1,11 +1,11 @@
-use common::types::client_id::ClientId;
+use common::types::client_id::NodeId;
 
 pub struct Worker {
-    client_id: ClientId,
+    node_id: NodeId,
 }
 
 impl Worker {
-    pub fn new(client_id: ClientId) -> Worker {
-        Worker { client_id }
+    pub fn new(node_id: NodeId) -> Worker {
+        Worker { node_id }
     }
 }

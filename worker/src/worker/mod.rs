@@ -1,19 +1,16 @@
 use common::types::{
+    client_id::NodeId,
     job::Job,
     kv::{Key, KeyValue, Value},
+    worker::WorkerState,
 };
 
 pub mod daemon;
+pub mod rpc_client;
 pub mod uni_worker;
 
-enum WorkerState {
-    IDLE,
-    RUNNING,
-    COMPLETED,
-}
-
 pub struct Worker {
-    id: usize,
+    id: NodeId,
 
     state: WorkerState,
 
@@ -24,13 +21,13 @@ pub struct Worker {
 pub struct WorkerConfiguration {
     // RPC Connection info
     max_threads: usize,
-    id: Option<usize>,
+    id: NodeId,
 }
 
 impl Worker {
     pub fn new(config: WorkerConfiguration) -> Worker {
         Self {
-            id: config.id.unwrap_or(1),
+            id: config.id,
             curr_threads: 0,
             max_threads: config.max_threads,
             state: WorkerState::IDLE,

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package crabmaster;
+
+// Heartbeat message that contain relevant data describing current status to master
+enum WorkerState {
+  RUNNING = 1; // Worker is currently running something
+  FULL = 2; // Worker is running, but it's parrarellization has been exhausted
+  IDLE = 3; // Worker is not doing anything
+}
+
+message Heartbeat {
+  Id id = 1;
+  WorkerState state = 2;
+}

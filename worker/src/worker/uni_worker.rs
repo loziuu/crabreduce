@@ -3,19 +3,17 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use common::types::{
     job::Job,
     kv::{Key, KeyValue, Value},
+    worker::WorkerState,
 };
 
-enum WorkerState {
-    IDLE,
-    RUNNING,
-    COMPLETED,
-}
+use super::rpc_client::RpcClient;
 
 pub struct UniWorker<J: Job> {
     state: WorkerState,
     curr_threads: usize,
     job: J,
     config: WorkerConfiguration,
+    client: RpcClient,
 }
 
 pub struct WorkerConfiguration {
@@ -41,6 +39,7 @@ impl<J: Job> UniWorker<J> {
         Self {
             curr_threads: 0,
             state: WorkerState::IDLE,
+            client: RpcClient::new(config.server),
             config,
             job,
         }
