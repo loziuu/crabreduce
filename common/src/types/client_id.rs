@@ -5,21 +5,27 @@ pub struct NodeId {
 }
 
 pub enum NodeIdError {
-    InvalidValue,
+    InvalidValue(&'static str),
 }
 
 impl NodeId {
     pub fn try_new(value: String) -> NodeIdResult {
         if value.is_empty() {
-            return Err(NodeIdError::InvalidValue);
+            return Err(NodeIdError::InvalidValue("NodeId cannot be empty"));
         }
 
         if value.len() < 5 || value.len() > 100 {
-            return Err(NodeIdError::InvalidValue);
+            return Err(NodeIdError::InvalidValue(
+                "Node id length must be between 5 and 100 characters",
+            ));
         }
 
         // TODO: Special characters?
         Ok(Self { value })
+    }
+
+    pub fn id(&self) -> &str {
+        &self.value
     }
 }
 

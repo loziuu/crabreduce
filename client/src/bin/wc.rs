@@ -2,7 +2,10 @@ use common::types::{
     job::Job,
     kv::{Key, KeyValue, Value},
 };
-use worker::worker::uni_worker::{UniWorker, WorkerConfiguration};
+use worker::worker::{
+    rpc_client::RpcClient,
+    uni_worker::{UniWorker, WorkerConfiguration},
+};
 
 struct WordCount {}
 
@@ -26,8 +29,15 @@ impl Job for WordCount {
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     let job = WordCount {};
-    let v = UniWorker::new(WorkerConfiguration::default(), job);
-    v.register();
+
+    let addr = "[::1]:50420".parse()?;
+    let connect = RpcClient::connect(addr).await?;
+    println!("Connected to master!");
+
+    let mut v = UniWorker::new(WorkerConfiguration::default(), job, connect);
+    v.register().await;
+    Ok(())
 }

@@ -6,6 +6,8 @@ use common::types::{
     worker::WorkerState,
 };
 
+use crate::rpc::{Id, RegisterRequest};
+
 use super::rpc_client::RpcClient;
 
 pub struct UniWorker<J: Job> {
@@ -35,20 +37,26 @@ impl Default for WorkerConfiguration {
 }
 
 impl<J: Job> UniWorker<J> {
-    pub fn new(config: WorkerConfiguration, job: J) -> UniWorker<J> {
+    pub fn new(config: WorkerConfiguration, job: J, rpc_client: RpcClient) -> UniWorker<J> {
         Self {
             curr_threads: 0,
             state: WorkerState::IDLE,
-            client: RpcClient::new(config.server),
             config,
             job,
+            client: rpc_client,
         }
     }
 
-    pub fn register(&self) {
+    pub async fn register(&mut self) {
         // Connect to coordinator
         // Run loop
         // Handle shutdown
+        let req = RegisterRequest {
+            worker_id: Some(Id {
+                id: "test-1".to_string(),
+            }),
+        };
+        let _ = self.client.register(req).await;
     }
 
     pub fn map(task: &impl Job, kv: KeyValue) {
