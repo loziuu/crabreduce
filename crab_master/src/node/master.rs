@@ -1,14 +1,16 @@
 use super::worker::Worker;
-use crate::server::RegisterRequest;
-use crate::server::RegisterResponse;
-use crate::server::crab_master_service_server::CrabMasterService;
-use common::types::client_id::NodeId;
-use common::types::client_id::NodeIdError;
-use std::sync::{Arc, Mutex};
-use tonic::Response;
+use common::types::node_id::NodeId;
+use common::types::node_id::NodeIdError;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+pub enum ServerError {
+    ValidationError(&'static str),
+}
 
 pub struct MasterConfiguration {}
 
+#[derive(Debug)]
 pub struct MasterNode {
     workers: Arc<Mutex<Vec<Worker>>>,
 }
@@ -26,44 +28,10 @@ impl MasterNode {
         }
     }
 
-    pub fn register_worker(&self, node_id: NodeId) {
-        println!("Registering {}.", node_id.id());
-
+    pub async fn register_worker(&self, node_id: NodeId) {
         let b = self.workers.clone();
-        let mut lock = b.lock().unwrap();
+        let mut lock = b.lock().await;
         lock.push(Worker::new(node_id));
-
-        println!("Registered succesfully");
-    }
-}
-
-#[tonic::async_trait]
-impl CrabMasterService for MasterNode {
-    async fn register(
-        &self,
-        request: tonic::Request<RegisterRequest>,
-    ) -> std::result::Result<tonic::Response<RegisterResponse>, tonic::Status> {
-        let req = request.get_ref();
-
-        let node_id = match &req.worker_id {
-            Some(id) => NodeId::try_from(id.clone().id).map_err(ServerError::from)?, // Prettify that?
-            None => return Err(tonic::Status::invalid_argument("Client_id is missing")),
-        };
-
-        self.register_worker(node_id);
-        Ok(Response::new(RegisterResponse {}))
-    }
-}
-
-enum ServerError {
-    ValidationError(&'static str),
-}
-
-impl From<ServerError> for tonic::Status {
-    fn from(value: ServerError) -> Self {
-        match value {
-            ServerError::ValidationError(msg) => tonic::Status::invalid_argument(msg),
-        }
     }
 }
 

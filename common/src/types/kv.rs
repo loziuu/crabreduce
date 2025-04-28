@@ -25,16 +25,6 @@ impl KeyValue {
     }
 }
 
-pub struct Val(String);
-
-impl Deref for Val {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 impl Deref for Value {
     type Target = str;
 

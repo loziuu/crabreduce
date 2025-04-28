@@ -10,6 +10,7 @@ use crate::rpc::{Id, RegisterRequest};
 
 use super::rpc_client::RpcClient;
 
+/// Uni Worker is
 pub struct UniWorker<J: Job> {
     state: WorkerState,
     curr_threads: usize,

@@ -16,8 +16,9 @@ pub enum FileNameError {
 impl FileName {
     pub fn new(file_name: String) -> Result<FileName, FileNameError> {
         // Validate filename
+        let sanitize = file_name.trim();
 
-        if file_name.is_empty() {
+        if sanitize.is_empty() {
             return Err(FileNameError::InvalidName("Empty file name"));
         }
 
@@ -26,7 +27,7 @@ impl FileName {
 }
 
 pub struct Task {
-    file_name: String,
+    file_name: FileName,
 }
 
 impl Deref for FileName {

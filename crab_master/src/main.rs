@@ -12,6 +12,8 @@ pub mod server {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // Get port from args
+    config_tracing();
+
     let addr = "[::1]:50420".parse()?;
     let master = MasterNode::new();
 
@@ -22,4 +24,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await?;
 
     Ok(())
+}
+
+fn config_tracing() {
+    tracing_subscriber::fmt()
+        // Only during development?
+        .with_max_level(tracing::Level::INFO)
+        .compact()
+        .with_target(false)
+        .with_thread_names(true)
+        .with_thread_ids(true)
+        .init();
 }

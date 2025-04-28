@@ -1,5 +1,6 @@
-use common::types::client_id::NodeId;
+use common::types::node_id::NodeId;
 
+#[derive(Debug)]
 pub struct Worker {
     node_id: NodeId,
 }

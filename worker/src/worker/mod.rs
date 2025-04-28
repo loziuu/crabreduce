@@ -1,7 +1,7 @@
 use common::types::{
-    client_id::NodeId,
     job::Job,
     kv::{Key, KeyValue, Value},
+    node_id::NodeId,
     worker::WorkerState,
 };
 
