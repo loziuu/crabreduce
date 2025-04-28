@@ -1,7 +1,0 @@
-syntax = "proto3";
-
-package crabmaster;
-
-message Id {
-  string id = 1;
-}

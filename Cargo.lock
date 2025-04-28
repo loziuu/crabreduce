@@ -149,6 +149,8 @@ dependencies = [
  "thiserror",
  "tokio",
  "tonic",
+ "tracing",
+ "tracing-subscriber",
  "worker",
 ]
 
@@ -157,6 +159,8 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

@@ -2,14 +2,16 @@ syntax = "proto3";
 
 package crabmaster;
 
+import "id.proto";
+
 // Heartbeat message that contain relevant data describing current status to master
 enum WorkerState {
-  RUNNING = 1; // Worker is currently running something
-  FULL = 2; // Worker is running, but it's parrarellization has been exhausted
-  IDLE = 3; // Worker is not doing anything
+  IDLE = 0; // Worker is currently running something
+  RUNNING = 1; // Worker is running, but it's parrarellization has been exhausted
+  FULL = 2; // Worker is not doing anything
 }
 
-message Heartbeat {
+message HeartbeatRequest {
   Id id = 1;
   WorkerState state = 2;
 }

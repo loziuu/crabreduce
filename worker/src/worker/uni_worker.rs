@@ -9,7 +9,7 @@ use gethostname::gethostname;
 
 use crate::rpc::{Id, RegisterRequest};
 
-use super::rpc_client::RpcClient;
+use super::{Worker, WorkerManager, master_client::MasterClient};
 
 /// Uni Worker is
 pub struct UniWorker<J: Job> {
@@ -17,7 +17,7 @@ pub struct UniWorker<J: Job> {
     curr_threads: usize,
     job: J,
     config: WorkerConfiguration,
-    client: RpcClient,
+    client: MasterClient,
 }
 
 pub struct WorkerConfiguration {
@@ -39,7 +39,7 @@ impl Default for WorkerConfiguration {
 }
 
 impl<J: Job> UniWorker<J> {
-    pub fn new(config: WorkerConfiguration, job: J, rpc_client: RpcClient) -> UniWorker<J> {
+    pub fn new(config: WorkerConfiguration, job: J, rpc_client: MasterClient) -> UniWorker<J> {
         Self {
             curr_threads: 0,
             state: WorkerState::IDLE,
@@ -49,7 +49,7 @@ impl<J: Job> UniWorker<J> {
         }
     }
 
-    pub async fn register(&mut self) {
+    pub async fn register(self) -> WorkerManager<Self> {
         // Connect to coordinator
         // Run loop
         // Handle shutdown
@@ -61,6 +61,7 @@ impl<J: Job> UniWorker<J> {
 
         // TODO: Add adding name from config
         let _ = self.client.register(req).await;
+        WorkerManager::new(self)
     }
 
     pub fn map(task: &impl Job, kv: KeyValue) {
@@ -73,5 +74,11 @@ impl<J: Job> UniWorker<J> {
         // Get from local disk and reduce and save to output file
         let values = task.reduce(k, value);
         //persist(values);
+    }
+}
+
+impl<J: Job> Worker for UniWorker<J> {
+    async fn shutdown(&mut self) {
+        panic!("Just panic");
     }
 }

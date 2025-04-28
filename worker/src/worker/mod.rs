@@ -1,51 +1,33 @@
-use common::types::{
-    job::Job,
-    kv::{Key, KeyValue, Value},
-    node_id::NodeId,
-    worker::WorkerState,
-};
+use std::sync::Arc;
+
+use tokio::sync::Mutex;
 
 pub mod daemon;
-pub mod rpc_client;
+pub mod heartbeat;
+pub mod master_client;
 pub mod uni_worker;
 
-pub struct Worker {
-    id: NodeId,
-
-    state: WorkerState,
-
-    curr_threads: usize,
-    max_threads: usize,
+trait Worker {
+    async fn shutdown(&mut self);
 }
 
-pub struct WorkerConfiguration {
-    // RPC Connection info
-    max_threads: usize,
-    id: NodeId,
+struct WorkerManager<T: Worker> {
+    worker: Arc<Mutex<T>>,
+    heartbeat_manager: HeartbeatManager,
 }
 
-impl Worker {
-    pub fn new(config: WorkerConfiguration) -> Worker {
-        Self {
-            id: config.id,
-            curr_threads: 0,
-            max_threads: config.max_threads,
-            state: WorkerState::IDLE,
+impl<T: Worker> WorkerManager<T> {
+    fn new(worker: T) -> Self {
+        let manager = Self {
+            worker: Arc::new(Mutex::new(worker)),
         }
+
+        tokio::spawn(|| {
+        });
     }
 
-    fn connect(&mut self) {
-        // Connect to coordinator
-    }
-
-    pub fn map(task: &impl Job, kv: KeyValue) {
-        task.map(kv);
-        // Persist to local disk
-    }
-
-    pub fn reduce(task: &impl Job, k: Key, value: Vec<Value>) {
-        // Get from local disk and reduce and save to output file
-        let values = task.reduce(k, value);
-        //persist(values);
+    async fn shutdown(&self) {
+        let mut worker = self.worker.lock().await;
+        worker.shutdown().await;
     }
 }

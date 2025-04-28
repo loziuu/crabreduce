@@ -4,7 +4,10 @@ package crabmaster;
 
 import "requests/register.proto";
 import "responses/register.proto";
+import "requests/heartbeat.proto";
+import "responses/heartbeat.proto";
 
 service CrabMasterService {
   rpc Register(RegisterRequest) returns (RegisterResponse) {}
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
 }

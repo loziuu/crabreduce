@@ -2,8 +2,9 @@ use common::types::{
     job::Job,
     kv::{Key, KeyValue, Value},
 };
+use tracing::info;
 use worker::worker::{
-    rpc_client::RpcClient,
+    master_client::MasterClient,
     uni_worker::{UniWorker, WorkerConfiguration},
 };
 
@@ -31,13 +32,17 @@ impl Job for WordCount {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    common::tracing::init();
+    info!("Starting CrabReduce worker...");
+
     let job = WordCount {};
 
-    let addr = "[::1]:50420".parse()?;
-    let connect = RpcClient::connect(addr).await?;
-    println!("Connected to master!");
+    let addr = "http://[::1]:50420";
 
+    info!("Trying to regsiter to master: [{}]", addr);
+    let connect = MasterClient::connect(addr).await?;
     let mut v = UniWorker::new(WorkerConfiguration::default(), job, connect);
     v.register().await;
+    info!("Worker started successfully");
     Ok(())
 }

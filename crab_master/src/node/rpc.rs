@@ -3,7 +3,8 @@ use tonic::Response;
 use tracing::{info, instrument};
 
 use crate::server::{
-    RegisterRequest, RegisterResponse, crab_master_service_server::CrabMasterService,
+    HeartbeatRequest, HeartbeatResponse, RegisterRequest, RegisterResponse,
+    crab_master_service_server::CrabMasterService,
 };
 
 use super::master::{MasterNode, ServerError};
@@ -27,6 +28,17 @@ impl CrabMasterService for MasterNode {
 
         info!("Worker registered.");
         Ok(Response::new(RegisterResponse {}))
+    }
+
+    // TODO: Define one field to contain worker_id
+    #[instrument(name = "heartbeat_worker", skip_all)]
+    async fn heartbeat(
+        &self,
+        _: tonic::Request<HeartbeatRequest>,
+    ) -> std::result::Result<tonic::Response<HeartbeatResponse>, tonic::Status> {
+        info!("Received worker beartbeat");
+
+        Ok(Response::new(HeartbeatResponse {}))
     }
 }
 

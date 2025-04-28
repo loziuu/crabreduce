@@ -1,11 +1,10 @@
 use thiserror::Error;
 
 use crate::rpc::{
-    Id, RegisterRequest, RegisterResponse, crab_master_service_client::CrabMasterServiceClient,
+    RegisterRequest, RegisterResponse, crab_master_service_client::CrabMasterServiceClient,
 };
-use std::net::SocketAddr;
 
-pub struct RpcClient {
+pub struct MasterClient {
     inner: CrabMasterServiceClient<tonic::transport::Channel>,
 }
 
@@ -17,12 +16,12 @@ pub enum RpcError {
 
 const MAX_RETRIES: usize = 10;
 
-impl RpcClient {
-    pub async fn connect(addr: SocketAddr) -> Result<RpcClient, RpcError> {
-        let address: String = format!("http://{}:{}", addr.ip(), addr.port());
-
-        // Retry
-        match CrabMasterServiceClient::connect(address).await {
+impl MasterClient {
+    pub async fn connect<T>(uri: T) -> Result<MasterClient, RpcError>
+    where
+        T: Into<String>,
+    {
+        match CrabMasterServiceClient::connect(uri.into()).await {
             Ok(inner) => Ok(Self { inner }),
             Err(err) => panic!("{:?}", err),
         }
@@ -36,4 +35,6 @@ impl RpcClient {
             .expect("Failed to register worker");
         resp.into_inner()
     }
+
+    pub async fn heartbeat(&mut self) -> Result<(), RpcError> {}
 }
