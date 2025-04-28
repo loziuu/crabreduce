@@ -19,10 +19,10 @@ const MAX_RETRIES: usize = 10;
 
 impl RpcClient {
     pub async fn connect(addr: SocketAddr) -> Result<RpcClient, RpcError> {
-        //let address: String = format!("http://127.0.0.1:{}", addr.port());
+        let address: String = format!("http://{}:{}", addr.ip(), addr.port());
 
         // Retry
-        match CrabMasterServiceClient::connect("http://[::1]:50420").await {
+        match CrabMasterServiceClient::connect(address).await {
             Ok(inner) => Ok(Self { inner }),
             Err(err) => panic!("{:?}", err),
         }

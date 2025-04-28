@@ -5,6 +5,7 @@ use common::types::{
     kv::{Key, KeyValue, Value},
     worker::WorkerState,
 };
+use gethostname::gethostname;
 
 use crate::rpc::{Id, RegisterRequest};
 
@@ -54,9 +55,11 @@ impl<J: Job> UniWorker<J> {
         // Handle shutdown
         let req = RegisterRequest {
             worker_id: Some(Id {
-                id: "test-1".to_string(),
+                id: gethostname().to_str().unwrap().to_string(),
             }),
         };
+
+        // TODO: Add adding name from config
         let _ = self.client.register(req).await;
     }
 

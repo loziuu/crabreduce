@@ -10,6 +10,7 @@ tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
 common = { path = "../common" }
 anyhow = "1.0.98"
 thiserror = { workspace = true }
+gethostname = "1.0.1"
 
 [build-dependencies]
 tonic-build = "*"

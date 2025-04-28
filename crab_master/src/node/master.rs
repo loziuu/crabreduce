@@ -28,6 +28,7 @@ impl MasterNode {
         }
     }
 
+    // TODO:What if node with given id is already registered?
     pub async fn register_worker(&self, node_id: NodeId) {
         let b = self.workers.clone();
         let mut lock = b.lock().await;
