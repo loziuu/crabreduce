@@ -42,7 +42,7 @@ impl MasterClient {
     pub async fn heartbeat(
         &mut self,
         request: HeartbeatRequest,
-    ) -> Result<Response<HeartbeatResponse>> {
-        self.inner.heartbeat(request).await;
+    ) -> Result<Response<HeartbeatResponse>, tonic::Status> {
+        self.inner.heartbeat(request).await
     }
 }

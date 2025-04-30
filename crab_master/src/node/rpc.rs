@@ -34,9 +34,14 @@ impl CrabMasterService for MasterNode {
     #[instrument(name = "heartbeat_worker", skip_all)]
     async fn heartbeat(
         &self,
-        _: tonic::Request<HeartbeatRequest>,
+        request: tonic::Request<HeartbeatRequest>,
     ) -> std::result::Result<tonic::Response<HeartbeatResponse>, tonic::Status> {
-        info!("Received worker beartbeat");
+        let body = request.get_ref();
+
+        info!(
+            "Received worker {} beartbeat",
+            &body.id.as_ref().unwrap().id
+        );
 
         Ok(Response::new(HeartbeatResponse {}))
     }

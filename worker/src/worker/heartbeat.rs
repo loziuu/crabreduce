@@ -1,11 +1,19 @@
-use std::{sync::atomic::AtomicI8, time::Instant};
+use crate::rpc::Id;
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
+use tracing::info;
 
 use common::types::node_id::NodeId;
-use tokio::sync::mpsc::Sender;
+use tokio::{
+    sync::{Mutex, mpsc::Sender},
+    time::sleep,
+};
 
 use crate::rpc::HeartbeatRequest;
 
-use super::{master_client::MasterClient, uni_worker::WorkerSignal};
+use super::{Worker, master_client::MasterClient, uni_worker::WorkerSignal};
 
 // TODO: Move it to config struct?
 const HEARTBEAT_INTERVAL: u64 = 5;
@@ -32,17 +40,81 @@ impl HeartbeatManager {
 
     /// Start firing heartbeats and publish an shutdown signal when it fails N times?
     // TODO: Abstract away sender so it's not depending on tokio API that much...
-    pub fn start(self, sender: Sender<WorkerSignal>) {
+    pub fn start(mut self, sender: Sender<WorkerSignal>) {
         let mut retries = 0;
         tokio::spawn(async move {
-            if retries >= 10 {
-                sender.send(WorkerSignal::Shutdown).await;
-                return;
+            loop {
+                if retries >= 10 {
+                    // TODO: UNWRAP
+                    sender.send(WorkerSignal::Shutdown).await.unwrap();
+                    return;
+                }
+
+                let req = HeartbeatRequest {
+                    id: Some(Id {
+                        id: self.id.id().to_string(),
+                    }),
+                    state: 0,
+                };
+
+                match self.client.heartbeat(req).await {
+                    Ok(_) => retries = 0,
+                    Err(e) => {
+                        if retries == SHUTDOWN_THRESHOLD {
+                            // TODO: UNWRAP
+                            sender.send(WorkerSignal::Shutdown).await.unwrap();
+                            return;
+                        }
+
+                        info!("Failed heartbeat: {:?}. Will retry.", e);
+                        retries += 1;
+                    }
+                }
+                sleep(Duration::from_secs(HEARTBEAT_INTERVAL)).await;
             }
+        });
+    }
+}
 
-            let req = HeartbeatRequest {};
+pub struct WorkerAwareContextManager<W: Worker> {
+    worker: Arc<Mutex<W>>,
+    last_time: Instant,
+}
 
-            match self.client.heartbeat(req).await {}
+impl<W: Worker> WorkerAwareContextManager<W> {
+    pub fn new(worker: Arc<Mutex<W>>) -> Self {
+        Self {
+            worker,
+            last_time: Instant::now(),
+        }
+    }
+
+    pub fn start(mut self) {
+        let mut retries = 0;
+        tokio::spawn(async move {
+            loop {
+                let req = HeartbeatRequest {
+                    id: Some(Id {
+                        id: self.worker.id().to_string(),
+                    }),
+                    state: 0,
+                };
+
+                match self.client.heartbeat(req).await {
+                    Ok(_) => retries = 0,
+                    Err(e) => {
+                        if retries == SHUTDOWN_THRESHOLD {
+                            // TODO: UNWRAP
+                            self.worker.lock().await.shutdown().await;
+                            return;
+                        }
+
+                        info!("Failed heartbeat: {:?}. Will retry.", e);
+                        retries += 1;
+                    }
+                }
+                sleep(Duration::from_secs(HEARTBEAT_INTERVAL)).await;
+            }
         });
     }
 }

@@ -4,6 +4,7 @@ use common::types::{
 };
 use tracing::info;
 use worker::worker::{
+    Worker,
     master_client::MasterClient,
     uni_worker::{UniWorker, WorkerConfiguration},
 };

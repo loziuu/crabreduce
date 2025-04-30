@@ -1,6 +1,6 @@
 type NodeIdResult = Result<NodeId, NodeIdError>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeId {
     value: String,
 }
@@ -27,6 +27,10 @@ impl NodeId {
         Ok(Self {
             value: sanitize.to_string(),
         })
+    }
+
+    pub fn raw(value: String) -> Self {
+        Self { value }
     }
 
     pub fn id(&self) -> &str {

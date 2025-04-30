@@ -3,10 +3,12 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use common::types::{
     job::Job,
     kv::{Key, KeyValue, Value},
+    node_id::NodeId,
     worker::WorkerState,
 };
 use gethostname::gethostname;
 use tokio::sync::mpsc;
+use tracing::info;
 
 use crate::rpc::{Id, RegisterRequest};
 
@@ -22,7 +24,7 @@ pub struct UniWorker<J: Job> {
 }
 
 pub struct WorkerConfiguration {
-    id: usize,
+    id: NodeId,
     max_threads: usize,
     server: SocketAddr,
     job_type: String,
@@ -32,7 +34,7 @@ impl Default for WorkerConfiguration {
     fn default() -> Self {
         Self {
             max_threads: 1,
-            id: 1,
+            id: NodeId::raw(gethostname().to_str().unwrap().to_string()),
             server: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 50420)),
             job_type: "Default".to_string(),
         }
@@ -82,8 +84,22 @@ impl<J: Job> Worker for UniWorker<J> {
         // TODO: Config buffer size?
         let (tx, mut rx) = mpsc::channel::<WorkerSignal>(32);
 
-        let heartbeat = HeartbeatManager::new(self.client.clone());
-        heartbeat.start();
+        let heartbeat = HeartbeatManager::new(self.config.id.clone(), self.client.clone());
+        heartbeat.start(tx.clone());
+
+        while let Some(msg) = rx.recv().await {
+            match msg {
+                WorkerSignal::RunJob => {
+                    info!("Received run job signal!");
+                }
+                WorkerSignal::Heartbeat => {
+                    info!("Received heartbeat!");
+                }
+                WorkerSignal::Shutdown => {
+                    info!("Received shutdown!");
+                }
+            }
+        }
     }
 }
 
