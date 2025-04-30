@@ -6,7 +6,7 @@ use super::Worker;
 
 const HEARTBEAT_INTERVAL: u64 = 5;
 
-struct HeartbeatManager<T: Worker> {
+pub struct HeartbeatManager<T: Worker> {
     worker: Arc<Mutex<T>>,
     last_time: Instant,
 }

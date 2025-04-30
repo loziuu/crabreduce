@@ -9,7 +9,7 @@ use gethostname::gethostname;
 
 use crate::rpc::{Id, RegisterRequest};
 
-use super::{Worker, WorkerManager, master_client::MasterClient};
+use super::{Worker, master_client::MasterClient};
 
 /// Uni Worker is
 pub struct UniWorker<J: Job> {
@@ -49,21 +49,6 @@ impl<J: Job> UniWorker<J> {
         }
     }
 
-    pub async fn register(self) -> WorkerManager<Self> {
-        // Connect to coordinator
-        // Run loop
-        // Handle shutdown
-        let req = RegisterRequest {
-            worker_id: Some(Id {
-                id: gethostname().to_str().unwrap().to_string(),
-            }),
-        };
-
-        // TODO: Add adding name from config
-        let _ = self.client.register(req).await;
-        WorkerManager::new(self)
-    }
-
     pub fn map(task: &impl Job, kv: KeyValue) {
         // Load file from task
         task.map(kv);
@@ -80,5 +65,16 @@ impl<J: Job> UniWorker<J> {
 impl<J: Job> Worker for UniWorker<J> {
     async fn shutdown(&mut self) {
         panic!("Just panic");
+    }
+
+    async fn register(&mut self) {
+        let req = RegisterRequest {
+            worker_id: Some(Id {
+                id: gethostname().to_str().unwrap().to_string(),
+            }),
+        };
+
+        // TODO: Add adding name from config
+        let _ = self.client.register(req).await;
     }
 }

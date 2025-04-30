@@ -5,7 +5,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .build_server(false)
         .compile_protos(
             &["../crab_master/proto/crab_master_service.proto"],
-            &["../proto/"],
+            &["../crab_master/proto/"],
         )?;
 
     Ok(())
