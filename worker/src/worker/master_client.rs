@@ -1,9 +1,12 @@
 use thiserror::Error;
+use tonic::Response;
 
 use crate::rpc::{
-    RegisterRequest, RegisterResponse, crab_master_service_client::CrabMasterServiceClient,
+    HeartbeatRequest, HeartbeatResponse, RegisterRequest, RegisterResponse,
+    crab_master_service_client::CrabMasterServiceClient,
 };
 
+#[derive(Clone)]
 pub struct MasterClient {
     inner: CrabMasterServiceClient<tonic::transport::Channel>,
 }
@@ -36,5 +39,10 @@ impl MasterClient {
         resp.into_inner()
     }
 
-    pub async fn heartbeat(&mut self) -> Result<(), RpcError> {}
+    pub async fn heartbeat(
+        &mut self,
+        request: HeartbeatRequest,
+    ) -> Result<Response<HeartbeatResponse>> {
+        self.inner.heartbeat(request).await;
+    }
 }

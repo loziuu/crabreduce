@@ -6,10 +6,11 @@ use common::types::{
     worker::WorkerState,
 };
 use gethostname::gethostname;
+use tokio::sync::mpsc;
 
 use crate::rpc::{Id, RegisterRequest};
 
-use super::{Worker, master_client::MasterClient};
+use super::{Worker, heartbeat::HeartbeatManager, master_client::MasterClient};
 
 /// Uni Worker is
 pub struct UniWorker<J: Job> {
@@ -76,5 +77,18 @@ impl<J: Job> Worker for UniWorker<J> {
 
         // TODO: Add adding name from config
         let _ = self.client.register(req).await;
+
+        // TODO: Setup channels to get tasks and shutdowns?
+        // TODO: Config buffer size?
+        let (tx, mut rx) = mpsc::channel::<WorkerSignal>(32);
+
+        let heartbeat = HeartbeatManager::new(self.client.clone());
+        heartbeat.start();
     }
+}
+
+pub enum WorkerSignal {
+    RunJob,
+    Heartbeat,
+    Shutdown,
 }

@@ -1,27 +1,48 @@
-use std::{sync::Arc, time::Instant};
+use std::{sync::atomic::AtomicI8, time::Instant};
 
-use tokio::sync::Mutex;
+use common::types::node_id::NodeId;
+use tokio::sync::mpsc::Sender;
 
-use super::Worker;
+use crate::rpc::HeartbeatRequest;
 
+use super::{master_client::MasterClient, uni_worker::WorkerSignal};
+
+// TODO: Move it to config struct?
 const HEARTBEAT_INTERVAL: u64 = 5;
+const SHUTDOWN_THRESHOLD: usize = 10;
 
-pub struct HeartbeatManager<T: Worker> {
-    worker: Arc<Mutex<T>>,
+pub struct HeartbeatManager {
+    id: NodeId,
+    client: MasterClient,
     last_time: Instant,
 }
 
-impl<T: Worker> HeartbeatManager<T> {
-    pub fn new(worker: Arc<Mutex<T>>) -> Self {
+impl HeartbeatManager {
+    pub fn new(id: NodeId, client: MasterClient) -> Self {
         Self {
-            worker,
+            id,
+            client,
             last_time: Instant::now(),
         }
     }
 
     pub async fn send_heartbeat(&mut self) {
-        let w = self.worker.lock().await;
-
         self.last_time = Instant::now();
+    }
+
+    /// Start firing heartbeats and publish an shutdown signal when it fails N times?
+    // TODO: Abstract away sender so it's not depending on tokio API that much...
+    pub fn start(self, sender: Sender<WorkerSignal>) {
+        let mut retries = 0;
+        tokio::spawn(async move {
+            if retries >= 10 {
+                sender.send(WorkerSignal::Shutdown).await;
+                return;
+            }
+
+            let req = HeartbeatRequest {};
+
+            match self.client.heartbeat(req).await {}
+        });
     }
 }
