@@ -13,12 +13,12 @@ use crate::rpc::{HeartbeatRequest, Id, RegisterRequest};
 use super::{Worker, WorkerError, master_client::MasterClient};
 
 /// Uni Worker is
-pub struct UniWorker<J: Job> {
+pub struct UniWorker<J: Job, MC: MasterClient> {
     state: WorkerState,
     curr_threads: usize,
     job: J,
     config: WorkerConfiguration,
-    client: MasterClient,
+    client: MC,
     is_registered: bool,
 }
 
@@ -40,11 +40,11 @@ impl Default for WorkerConfiguration {
     }
 }
 
-impl<J: Job> UniWorker<J> {
-    pub fn new(config: WorkerConfiguration, job: J, rpc_client: MasterClient) -> UniWorker<J> {
+impl<J: Job, MC: MasterClient> UniWorker<J, MC> {
+    pub fn new(config: WorkerConfiguration, job: J, rpc_client: MC) -> UniWorker<J, MC> {
         Self {
             curr_threads: 0,
-            state: WorkerState::IDLE,
+            state: WorkerState::Detached,
             config,
             job,
             client: rpc_client,
@@ -65,7 +65,7 @@ impl<J: Job> UniWorker<J> {
     }
 }
 
-impl<J: Job> Worker for UniWorker<J> {
+impl<J: Job, MC: MasterClient> Worker for UniWorker<J, MC> {
     async fn register(&mut self) -> Result<(), WorkerError> {
         let req = RegisterRequest {
             worker_id: Some(Id {
@@ -76,6 +76,7 @@ impl<J: Job> Worker for UniWorker<J> {
         // TODO: Add adding name from config
         let _ = self.client.register(req).await;
         self.is_registered = true;
+        self.state = WorkerState::Idle;
         Ok(())
     }
 
@@ -99,5 +100,44 @@ impl<J: Job> Worker for UniWorker<J> {
             return Err(WorkerError::ConnectionError);
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::worker::master_client::tests::MockMasterClient;
+
+    struct MockJob {}
+
+    impl Job for MockJob {
+        fn map(&self, kv: KeyValue) -> Vec<KeyValue> {
+            vec![]
+        }
+
+        fn reduce(&self, k: Key, v: Vec<Value>) -> KeyValue {
+            KeyValue::new("test".to_string(), "mock".to_string())
+        }
+    }
+
+    use super::*;
+
+    #[test]
+    fn init_new_worker() {
+        let worker = UniWorker::new(test_config(), MockJob {}, MockMasterClient {});
+
+        assert_eq!(worker.state, WorkerState::Detached);
+    }
+
+    #[test]
+    fn register_worker() {
+        let mut worker = UniWorker::new(test_config(), MockJob {}, MockMasterClient {});
+
+        futures::executor::block_on(worker.register()).unwrap();
+
+        assert_eq!(worker.state, WorkerState::Idle);
+    }
+
+    fn test_config() -> WorkerConfiguration {
+        WorkerConfiguration::default()
     }
 }

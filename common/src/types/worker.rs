@@ -1,5 +1,8 @@
+#[derive(Debug, PartialEq, Eq)]
 pub enum WorkerState {
-    IDLE,
-    RUNNING,
-    COMPLETED,
+    Detached,
+    Idle,
+    Busy,
+    BusyFull,
+    Finished,
 }

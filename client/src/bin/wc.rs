@@ -2,14 +2,10 @@ use common::types::{
     job::Job,
     kv::{Key, KeyValue, Value},
 };
-use tracing::info;
 use worker::worker::{
-    Worker,
-    master_client::MasterClient,
+    master_client::{MasterClient, RpcMasterClient},
     uni_worker::{UniWorker, WorkerConfiguration},
 };
-
-use worker::start_worker;
 
 struct WordCount {}
 
@@ -39,7 +35,7 @@ async fn main() -> anyhow::Result<()> {
 
     let job = WordCount {};
     let addr = "http://[::1]:50420";
-    let connect = MasterClient::connect(addr).await?;
+    let connect = RpcMasterClient::connect(addr).await?;
     let v = UniWorker::new(WorkerConfiguration::default(), job, connect);
     worker::start_worker(v).await;
 

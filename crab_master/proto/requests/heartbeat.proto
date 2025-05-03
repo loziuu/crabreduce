@@ -6,9 +6,11 @@ import "id.proto";
 
 // Heartbeat message that contain relevant data describing current status to master
 enum WorkerState {
-  IDLE = 0; // Worker is currently running something
-  RUNNING = 1; // Worker is running, but it's parrarellization has been exhausted
-  FULL = 2; // Worker is not doing anything
+  Detached = 0;
+  Idle = 1;
+  Busy = 2;
+  BusyFull = 3;
+  Full = 4;
 }
 
 message HeartbeatRequest {
