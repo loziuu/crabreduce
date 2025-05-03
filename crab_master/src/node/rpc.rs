@@ -39,7 +39,7 @@ impl CrabMasterService for MasterNode {
         let body = request.get_ref();
 
         info!(
-            "Received worker {} beartbeat",
+            "Received worker {} heartbeat",
             &body.id.as_ref().unwrap().id
         );
 

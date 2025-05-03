@@ -1,9 +1,18 @@
 pub mod daemon;
-mod heartbeat;
+pub(crate) mod heartbeat;
 pub mod master_client;
 pub mod uni_worker;
 
-pub trait Worker {
-    async fn register(&mut self);
-    async fn shutdown(&mut self);
+pub trait Worker: Send {
+    fn register(&mut self) -> impl std::future::Future<Output = Result<(), WorkerError>> + Send;
+    fn shutdown(&mut self) -> impl std::future::Future<Output = Result<(), WorkerError>> + Send;
+
+    fn heartbeat(
+        &mut self,
+    ) -> impl std::future::Future<Output = Result<(), WorkerError>> + std::marker::Send;
+}
+
+pub enum WorkerError {
+    ConnectionError,
+    NotRegistered,
 }

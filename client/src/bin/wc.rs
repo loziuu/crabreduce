@@ -9,6 +9,8 @@ use worker::worker::{
     uni_worker::{UniWorker, WorkerConfiguration},
 };
 
+use worker::start_worker;
+
 struct WordCount {}
 
 impl Job for WordCount {
@@ -34,16 +36,12 @@ impl Job for WordCount {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     common::tracing::init();
-    info!("Starting CrabReduce worker...");
 
     let job = WordCount {};
-
     let addr = "http://[::1]:50420";
-
-    info!("Trying to regsiter to master: [{}]", addr);
     let connect = MasterClient::connect(addr).await?;
-    let mut v = UniWorker::new(WorkerConfiguration::default(), job, connect);
-    v.register().await;
-    info!("Worker started successfully");
+    let v = UniWorker::new(WorkerConfiguration::default(), job, connect);
+    worker::start_worker(v).await;
+
     Ok(())
 }

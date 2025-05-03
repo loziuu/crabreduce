@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use super::kv::{Key, KeyValue, Value};
 
-pub trait Job {
+pub trait Job: Send {
     fn map(&self, kv: KeyValue) -> Vec<KeyValue>;
     fn reduce(&self, k: Key, v: Vec<Value>) -> KeyValue;
 }

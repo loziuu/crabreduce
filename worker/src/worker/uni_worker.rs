@@ -7,12 +7,10 @@ use common::types::{
     worker::WorkerState,
 };
 use gethostname::gethostname;
-use tokio::sync::mpsc;
-use tracing::info;
 
-use crate::rpc::{Id, RegisterRequest};
+use crate::rpc::{HeartbeatRequest, Id, RegisterRequest};
 
-use super::{Worker, heartbeat::HeartbeatManager, master_client::MasterClient};
+use super::{Worker, WorkerError, master_client::MasterClient};
 
 /// Uni Worker is
 pub struct UniWorker<J: Job> {
@@ -21,6 +19,7 @@ pub struct UniWorker<J: Job> {
     job: J,
     config: WorkerConfiguration,
     client: MasterClient,
+    is_registered: bool,
 }
 
 pub struct WorkerConfiguration {
@@ -49,6 +48,7 @@ impl<J: Job> UniWorker<J> {
             config,
             job,
             client: rpc_client,
+            is_registered: false,
         }
     }
 
@@ -66,11 +66,7 @@ impl<J: Job> UniWorker<J> {
 }
 
 impl<J: Job> Worker for UniWorker<J> {
-    async fn shutdown(&mut self) {
-        panic!("Just panic");
-    }
-
-    async fn register(&mut self) {
+    async fn register(&mut self) -> Result<(), WorkerError> {
         let req = RegisterRequest {
             worker_id: Some(Id {
                 id: gethostname().to_str().unwrap().to_string(),
@@ -79,27 +75,30 @@ impl<J: Job> Worker for UniWorker<J> {
 
         // TODO: Add adding name from config
         let _ = self.client.register(req).await;
+        self.is_registered = true;
+        Ok(())
+    }
 
-        // TODO: Setup channels to get tasks and shutdowns?
-        // TODO: Config buffer size?
-        let (tx, mut rx) = mpsc::channel::<WorkerSignal>(32);
+    async fn shutdown(&mut self) -> Result<(), super::WorkerError> {
+        panic!("Just panic...");
+    }
 
-        let heartbeat = HeartbeatManager::new(self.config.id.clone(), self.client.clone());
-        heartbeat.start(tx.clone());
-
-        while let Some(msg) = rx.recv().await {
-            match msg {
-                WorkerSignal::RunJob => {
-                    info!("Received run job signal!");
-                }
-                WorkerSignal::Heartbeat => {
-                    info!("Received heartbeat!");
-                }
-                WorkerSignal::Shutdown => {
-                    info!("Received shutdown!");
-                }
-            }
+    async fn heartbeat(&mut self) -> Result<(), WorkerError> {
+        if !self.is_registered {
+            return Err(WorkerError::NotRegistered);
         }
+
+        let req = HeartbeatRequest {
+            id: Some(Id {
+                id: self.config.id.to_string(),
+            }),
+            state: 0,
+        };
+
+        if self.client.heartbeat(req).await.is_err() {
+            return Err(WorkerError::ConnectionError);
+        }
+        Ok(())
     }
 }
 

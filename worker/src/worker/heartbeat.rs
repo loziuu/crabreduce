@@ -1,35 +1,29 @@
-use crate::rpc::Id;
 use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tracing::info;
 
-use common::types::node_id::NodeId;
-use tokio::{
-    sync::{Mutex, mpsc::Sender},
-    time::sleep,
-};
+use common::types::mutex::AsyncMutex;
+use tokio::time::sleep;
+use tracing::{info, warn};
 
-use crate::rpc::HeartbeatRequest;
-
-use super::{Worker, master_client::MasterClient, uni_worker::WorkerSignal};
+use super::Worker;
 
 // TODO: Move it to config struct?
 const HEARTBEAT_INTERVAL: u64 = 5;
 const SHUTDOWN_THRESHOLD: usize = 10;
 
-pub struct HeartbeatManager {
-    id: NodeId,
-    client: MasterClient,
+pub struct HeartbeatManager<W: Worker + Send + 'static> {
+    worker: Arc<AsyncMutex<W>>,
+
+    /// Point in time of latest succesful heartbeat
     last_time: Instant,
 }
 
-impl HeartbeatManager {
-    pub fn new(id: NodeId, client: MasterClient) -> Self {
+impl<W: Worker + Send + 'static> HeartbeatManager<W> {
+    pub fn new(worker: Arc<AsyncMutex<W>>) -> Self {
         Self {
-            id,
-            client,
+            worker,
             last_time: Instant::now(),
         }
     }
@@ -40,79 +34,30 @@ impl HeartbeatManager {
 
     /// Start firing heartbeats and publish an shutdown signal when it fails N times?
     // TODO: Abstract away sender so it's not depending on tokio API that much...
-    pub fn start(mut self, sender: Sender<WorkerSignal>) {
+    pub fn start(self) {
         let mut retries = 0;
+        let w = self.worker.clone();
+
         tokio::spawn(async move {
             loop {
-                if retries >= 10 {
-                    // TODO: UNWRAP
-                    sender.send(WorkerSignal::Shutdown).await.unwrap();
+                {
+                    let mut lock = w.lock().await;
+
+                    info!("Sending heartbeat...");
+                    if (lock.heartbeat().await).is_err() {
+                        info!("Heartbeat failed.");
+                        retries += 1;
+                    } else {
+                        retries = 0;
+                    }
+                }
+
+                if retries == SHUTDOWN_THRESHOLD {
+                    warn!("Heartbeat threshold exceeded. Shutting down...");
                     return;
                 }
 
-                let req = HeartbeatRequest {
-                    id: Some(Id {
-                        id: self.id.id().to_string(),
-                    }),
-                    state: 0,
-                };
-
-                match self.client.heartbeat(req).await {
-                    Ok(_) => retries = 0,
-                    Err(e) => {
-                        if retries == SHUTDOWN_THRESHOLD {
-                            // TODO: UNWRAP
-                            sender.send(WorkerSignal::Shutdown).await.unwrap();
-                            return;
-                        }
-
-                        info!("Failed heartbeat: {:?}. Will retry.", e);
-                        retries += 1;
-                    }
-                }
-                sleep(Duration::from_secs(HEARTBEAT_INTERVAL)).await;
-            }
-        });
-    }
-}
-
-pub struct WorkerAwareContextManager<W: Worker> {
-    worker: Arc<Mutex<W>>,
-    last_time: Instant,
-}
-
-impl<W: Worker> WorkerAwareContextManager<W> {
-    pub fn new(worker: Arc<Mutex<W>>) -> Self {
-        Self {
-            worker,
-            last_time: Instant::now(),
-        }
-    }
-
-    pub fn start(mut self) {
-        let mut retries = 0;
-        tokio::spawn(async move {
-            loop {
-                let req = HeartbeatRequest {
-                    id: Some(Id {
-                        id: self.worker.id().to_string(),
-                    }),
-                    state: 0,
-                };
-
-                match self.client.heartbeat(req).await {
-                    Ok(_) => retries = 0,
-                    Err(e) => {
-                        if retries == SHUTDOWN_THRESHOLD {
-                            // TODO: UNWRAP
-                            self.worker.lock().await.shutdown().await;
-                            return;
-                        }
-
-                        info!("Failed heartbeat: {:?}. Will retry.", e);
-                        retries += 1;
-                    }
-                }
+                retries += 1;
                 sleep(Duration::from_secs(HEARTBEAT_INTERVAL)).await;
             }
         });
