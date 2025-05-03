@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 common = { path = "../common" }
-worker = { path = "../worker" }
+worker = { path = "../crab_worker" }
 tokio = { workspace = true }
 tonic = { workspace = true }
 anyhow = { workspace = true }

@@ -101,9 +101,3 @@ impl<J: Job> Worker for UniWorker<J> {
         Ok(())
     }
 }
-
-pub enum WorkerSignal {
-    RunJob,
-    Heartbeat,
-    Shutdown,
-}
