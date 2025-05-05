@@ -1,3 +1,4 @@
+use mockall::automock;
 use thiserror::Error;
 
 use crate::rpc::{
@@ -6,11 +7,9 @@ use crate::rpc::{
 
 pub(crate) type ClientResult<T> = Result<T, RpcError>;
 
-// NOTE: Rename it to maybe... just MASTER? Who cares for 'client' suffix?
-pub trait MasterClient: Send {
-    fn connect<T: Into<String>>(
-        uri: T,
-    ) -> impl std::future::Future<Output = ClientResult<impl MasterClient>>;
+#[automock]
+pub trait CrabMaster: Send {
+    fn connect(&mut self) -> impl std::future::Future<Output = ClientResult<()>> + Send;
 
     fn register(
         &mut self,
@@ -24,64 +23,74 @@ pub trait MasterClient: Send {
 }
 
 #[derive(Clone)]
-pub struct RpcMasterClient {
-    inner: CrabMasterServiceClient<tonic::transport::Channel>,
+pub struct RpcCrabMaster {
+    inner: Option<CrabMasterServiceClient<tonic::transport::Channel>>,
+
+    // TODO: Use something better, validateable?
+    uri: String,
 }
 
 /// NOTE: Maybe rename it so it's not obvious that it's RPC underneath it?
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone, Copy)]
 pub enum RpcError {
-    #[error("Cannot connect to server")]
+    #[error("Cannot connect to the server")]
     CannotConnect,
+
+    #[error("Not connnected to the server")]
+    NotConnected,
 }
 
 const MAX_RETRIES: usize = 10;
 
-impl MasterClient for RpcMasterClient {
-    async fn connect<T: Into<String>>(uri: T) -> ClientResult<impl MasterClient> {
+impl RpcCrabMaster {
+    pub fn new(uri: String) -> RpcCrabMaster {
+        Self { uri, inner: None }
+    }
+}
+
+impl CrabMaster for RpcCrabMaster {
+    async fn connect(&mut self) -> ClientResult<()> {
+        if self.inner.is_some() {
+            return Ok(());
+        }
+
         // TODO: Use max retries here.
-        match CrabMasterServiceClient::connect(uri.into()).await {
-            Ok(inner) => Ok(Self { inner }),
+        // TODO: Remove this uri.clone()?
+        match CrabMasterServiceClient::connect(self.uri.clone()).await {
+            Ok(inner) => {
+                self.inner = Some(inner);
+                Ok(())
+            }
             Err(err) => panic!("{:?}", err),
         }
     }
 
     async fn register(&mut self, request: RegisterRequest) -> ClientResult<()> {
-        self.inner
-            .register(request)
-            .await
-            .map_err(|_| RpcError::CannotConnect)?;
-        Ok(())
+        match self.inner.as_mut() {
+            Some(rpc) => {
+                rpc.register(request)
+                    .await
+                    .map_err(|_| RpcError::CannotConnect)?;
+                Ok(())
+            }
+            None => Err(RpcError::NotConnected),
+        }
     }
 
     async fn heartbeat(&mut self, request: HeartbeatRequest) -> ClientResult<()> {
-        self.inner
-            .heartbeat(request)
-            .await
-            .map_err(|_| RpcError::CannotConnect)?;
-        Ok(())
+        match self.inner.as_mut() {
+            Some(rpc) => {
+                rpc.heartbeat(request)
+                    .await
+                    .map_err(|_| RpcError::CannotConnect)?;
+                Ok(())
+            }
+            None => Err(RpcError::NotConnected),
+        }
     }
 }
 
 #[cfg(test)]
-pub mod tests {
-    use crate::rpc::{HeartbeatRequest, RegisterRequest};
-
-    use super::{ClientResult, MasterClient};
-
-    pub(crate) struct MockMasterClient {}
-
-    impl MasterClient for MockMasterClient {
-        async fn connect<T: Into<String>>(_uri: T) -> ClientResult<impl MasterClient> {
-            Ok(Self {})
-        }
-
-        async fn register(&mut self, _request: RegisterRequest) -> ClientResult<()> {
-            Ok(())
-        }
-
-        async fn heartbeat(&mut self, _request: HeartbeatRequest) -> ClientResult<()> {
-            Ok(())
-        }
-    }
+mod tests {
+    // TODO: This is to be tested with integration tests?
 }

@@ -3,7 +3,7 @@ use common::types::{
     kv::{Key, KeyValue, Value},
 };
 use worker::worker::{
-    master_client::{MasterClient, RpcMasterClient},
+    master_client::RpcCrabMaster,
     uni_worker::{UniWorker, WorkerConfiguration},
 };
 
@@ -33,10 +33,11 @@ impl Job for WordCount {
 async fn main() -> anyhow::Result<()> {
     common::tracing::init();
 
-    let job = WordCount {};
-    let addr = "http://[::1]:50420";
-    let connect = RpcMasterClient::connect(addr).await?;
-    let v = UniWorker::new(WorkerConfiguration::default(), job, connect);
+    let master = RpcCrabMaster::new("http://[::1]:50420".to_string());
+
+    // NOTE: Don't create worker here, move it to worker::some_fancy_new_method(cfg, job, client);
+    let v = UniWorker::new(WorkerConfiguration::default(), WordCount {}, master);
+
     worker::start_worker(v).await;
 
     Ok(())
