@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 type NodeIdResult = Result<NodeId, NodeIdError>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct NodeId {
     value: String,
 }

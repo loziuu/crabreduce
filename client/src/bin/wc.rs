@@ -4,7 +4,7 @@ use common::types::{
 };
 use worker::worker::{
     master_client::RpcCrabMaster,
-    uni_worker::{UniWorker, WorkerConfiguration},
+    uni_worker::{Config, UniWorker},
 };
 
 struct WordCount {}
@@ -36,7 +36,7 @@ async fn main() -> anyhow::Result<()> {
     let master = RpcCrabMaster::new("http://[::1]:50420".to_string());
 
     // NOTE: Don't create worker here, move it to worker::some_fancy_new_method(cfg, job, client);
-    let v = UniWorker::new(WorkerConfiguration::default(), WordCount {}, master);
+    let v = UniWorker::new(Config::default(), WordCount {}, master);
 
     worker::start_worker(v).await;
 

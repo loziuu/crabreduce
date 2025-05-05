@@ -15,7 +15,7 @@ use super::{Worker, WorkerError, master_client::CrabMaster};
 /// Uni Worker is a type of worker that does just one concrete job.
 pub struct UniWorker<J: Job, C: CrabMaster> {
     state: WorkerState,
-    config: WorkerConfiguration,
+    config: Config,
     client: C,
     is_registered: bool,
 
@@ -23,7 +23,7 @@ pub struct UniWorker<J: Job, C: CrabMaster> {
     _job: J,
 }
 
-pub struct WorkerConfiguration {
+pub struct Config {
     id: NodeId,
 
     _max_threads: usize,
@@ -31,7 +31,7 @@ pub struct WorkerConfiguration {
     _job_type: String,
 }
 
-impl Default for WorkerConfiguration {
+impl Default for Config {
     fn default() -> Self {
         Self {
             id: NodeId::raw(gethostname().to_str().unwrap().to_string()),
@@ -44,7 +44,7 @@ impl Default for WorkerConfiguration {
 }
 
 impl<J: Job, MC: CrabMaster> UniWorker<J, MC> {
-    pub fn new(config: WorkerConfiguration, job: J, rpc_client: MC) -> UniWorker<J, MC> {
+    pub fn new(config: Config, job: J, rpc_client: MC) -> UniWorker<J, MC> {
         Self {
             _curr_threads: 0,
             state: WorkerState::Detached,
@@ -180,7 +180,7 @@ mod tests {
         master
     }
 
-    fn test_config() -> WorkerConfiguration {
-        WorkerConfiguration::default()
+    fn test_config() -> Config {
+        Config::default()
     }
 }

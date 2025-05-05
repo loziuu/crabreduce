@@ -38,11 +38,13 @@ impl CrabMasterService for MasterNode {
     ) -> std::result::Result<tonic::Response<HeartbeatResponse>, tonic::Status> {
         let body = request.get_ref();
 
+        let node_id = &body.id.as_ref().unwrap().id;
         info!(
             "Received worker {} heartbeat",
             &body.id.as_ref().unwrap().id
         );
 
+        self.register_heartbeat(NodeId::raw(node_id.clone())).await;
         Ok(Response::new(HeartbeatResponse {}))
     }
 }
