@@ -12,30 +12,33 @@ use crate::rpc::{HeartbeatRequest, Id, RegisterRequest};
 
 use super::{Worker, WorkerError, master_client::MasterClient};
 
-/// Uni Worker is
+/// Uni Worker is a type of worker that does just one concrete job.
 pub struct UniWorker<J: Job, MC: MasterClient> {
     state: WorkerState,
-    curr_threads: usize,
-    job: J,
     config: WorkerConfiguration,
     client: MC,
     is_registered: bool,
+
+    _curr_threads: usize,
+    _job: J,
 }
 
 pub struct WorkerConfiguration {
     id: NodeId,
-    max_threads: usize,
-    server: SocketAddr,
-    job_type: String,
+
+    _max_threads: usize,
+    _server: SocketAddr,
+    _job_type: String,
 }
 
 impl Default for WorkerConfiguration {
     fn default() -> Self {
         Self {
-            max_threads: 1,
             id: NodeId::raw(gethostname().to_str().unwrap().to_string()),
-            server: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 50420)),
-            job_type: "Default".to_string(),
+
+            _max_threads: 1,
+            _server: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 50420)),
+            _job_type: "Default".to_string(),
         }
     }
 }
@@ -43,10 +46,10 @@ impl Default for WorkerConfiguration {
 impl<J: Job, MC: MasterClient> UniWorker<J, MC> {
     pub fn new(config: WorkerConfiguration, job: J, rpc_client: MC) -> UniWorker<J, MC> {
         Self {
-            curr_threads: 0,
+            _curr_threads: 0,
             state: WorkerState::Detached,
             config,
-            job,
+            _job: job,
             client: rpc_client,
             is_registered: false,
         }
@@ -60,7 +63,7 @@ impl<J: Job, MC: MasterClient> UniWorker<J, MC> {
 
     pub fn reduce(task: &impl Job, k: Key, value: Vec<Value>) {
         // Get from local disk and reduce and save to output file
-        let values = task.reduce(k, value);
+        let _values = task.reduce(k, value);
         //persist(values);
     }
 }
@@ -69,7 +72,7 @@ impl<J: Job, MC: MasterClient> Worker for UniWorker<J, MC> {
     async fn register(&mut self) -> Result<(), WorkerError> {
         let req = RegisterRequest {
             worker_id: Some(Id {
-                id: gethostname().to_str().unwrap().to_string(),
+                id: self.config.id.to_string(),
             }),
         };
 
@@ -110,11 +113,11 @@ mod tests {
     struct MockJob {}
 
     impl Job for MockJob {
-        fn map(&self, kv: KeyValue) -> Vec<KeyValue> {
+        fn map(&self, _kv: KeyValue) -> Vec<KeyValue> {
             vec![]
         }
 
-        fn reduce(&self, k: Key, v: Vec<Value>) -> KeyValue {
+        fn reduce(&self, _k: Key, _v: Vec<Value>) -> KeyValue {
             KeyValue::new("test".to_string(), "mock".to_string())
         }
     }

@@ -27,7 +27,7 @@ impl FileName {
 }
 
 pub struct Task {
-    file_name: FileName,
+    _file_name: FileName,
 }
 
 impl Deref for FileName {

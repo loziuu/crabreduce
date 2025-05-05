@@ -165,6 +165,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "crab_fs"
+version = "0.1.0"
+
+[[package]]
 name = "crab_master"
 version = "0.1.0"
 dependencies = [

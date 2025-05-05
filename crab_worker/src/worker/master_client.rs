@@ -39,6 +39,7 @@ const MAX_RETRIES: usize = 10;
 
 impl MasterClient for RpcMasterClient {
     async fn connect<T: Into<String>>(uri: T) -> ClientResult<impl MasterClient> {
+        // TODO: Use max retries here.
         match CrabMasterServiceClient::connect(uri.into()).await {
             Ok(inner) => Ok(Self { inner }),
             Err(err) => panic!("{:?}", err),

@@ -1,5 +1,5 @@
 [workspace]
-members = ["client", "crab_worker", "crab_master", "common"]
+members = ["client", "crab_worker", "crab_master", "crab_fs", "common"]
 resolver = "3"
 
 [workspace.dependencies]
